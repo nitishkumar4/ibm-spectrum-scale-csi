@@ -312,9 +312,7 @@ func (r *CSIScaleOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	logger.Info("Synchronization of ConfigMap is successful")
 
 	// Synchronizing attacher deployment
-	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerAttacher, instance.Name)); err != nil {
-		return ctrl.Result{}, err
-	}
+
 	csiControllerSyncer := clustersyncer.GetAttacherSyncer(r.Client, r.Scheme, instance)
 	if err := syncer.Sync(context.TODO(), csiControllerSyncer, r.recorder); err != nil {
 		message := "Synchronization of attacher interface failed."
@@ -328,12 +326,12 @@ func (r *CSIScaleOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		})
 		return ctrl.Result{}, err
 	}
+	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerAttacher, instance.Name)); err != nil {
+		return ctrl.Result{}, err
+	}
 	logger.Info("Synchronization of attacher interface is successful")
 
 	// Synchronizing provisioner deployment
-	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerProvisioner, instance.Name)); err != nil {
-		return ctrl.Result{}, err
-	}
 	csiControllerSyncerProvisioner := clustersyncer.GetProvisionerSyncer(r.Client, r.Scheme, instance)
 	if err := syncer.Sync(context.TODO(), csiControllerSyncerProvisioner, r.recorder); err != nil {
 		message := "Synchronization of provisioner interface failed."
@@ -347,12 +345,13 @@ func (r *CSIScaleOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		})
 		return ctrl.Result{}, err
 	}
+	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerProvisioner, instance.Name)); err != nil {
+		return ctrl.Result{}, err
+	}
 	logger.Info("Synchronization of provisioner interface is successful")
 
 	// Synchronizing snapshotter deployment
-	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerSnapshotter, instance.Name)); err != nil {
-		return ctrl.Result{}, err
-	}
+
 	csiControllerSyncerSnapshotter := clustersyncer.GetSnapshotterSyncer(r.Client, r.Scheme, instance)
 	if err := syncer.Sync(context.TODO(), csiControllerSyncerSnapshotter, r.recorder); err != nil {
 		message := "Synchronization of snapshotter interface failed."
@@ -366,12 +365,12 @@ func (r *CSIScaleOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		})
 		return ctrl.Result{}, err
 	}
+	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerSnapshotter, instance.Name)); err != nil {
+		return ctrl.Result{}, err
+	}
 	logger.Info("Synchronization of snapshotter interface is successful")
 
 	// Synchronizing resizer deployment
-	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerResizer, instance.Name)); err != nil {
-		return ctrl.Result{}, err
-	}
 	csiControllerSyncerResizer := clustersyncer.GetResizerSyncer(r.Client, r.Scheme, instance)
 	if err := syncer.Sync(context.TODO(), csiControllerSyncerResizer, r.recorder); err != nil {
 		message := "Synchronization of resizer interface failed."
@@ -383,6 +382,9 @@ func (r *CSIScaleOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			Reason:  string(csiv1.ResourceSyncError),
 			Message: message,
 		})
+		return ctrl.Result{}, err
+	}
+	if err := r.removeStatefulset(instance, config.GetNameForResource(config.CSIControllerResizer, instance.Name)); err != nil {
 		return ctrl.Result{}, err
 	}
 	logger.Info("Synchronization of resizer interface is successful")
