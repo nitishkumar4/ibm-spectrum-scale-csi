@@ -18,12 +18,6 @@ metadata:
             "namespace": "ibm-spectrum-scale-csi-driver"
           },
           "spec": {
-            "attacherNodeSelector": [
-              {
-                "key": "scale",
-                "value": "true"
-              }
-            ],
             "clusters": [
               {
                 "id": "\u003cPrimary Cluster ID\u003e",
@@ -39,25 +33,13 @@ metadata:
                 "secureSslMode": false
               }
             ],
+            "controllerNodeSelector": [
+              {
+                "key": "scale",
+                "value": "true"
+              }
+            ],
             "pluginNodeSelector": [
-              {
-                "key": "scale",
-                "value": "true"
-              }
-            ],
-            "provisionerNodeSelector": [
-              {
-                "key": "scale",
-                "value": "true"
-              }
-            ],
-            "resizerNodeSelector": [
-              {
-                "key": "scale",
-                "value": "true"
-              }
-            ],
-            "snapshotterNodeSelector": [
               {
                 "key": "scale",
                 "value": "true"

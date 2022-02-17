@@ -715,7 +715,7 @@ func (c *CSIScaleOperator) GetLivenessProbe() *corev1.Probe {
 	//tolerationsSeconds := config.TolerationsSeconds
 	probe := corev1.Probe{
 		FailureThreshold:    int32(1),
-		InitialDelaySeconds: int32(30), // TODO: With increase in sidecar containers, initial delay needs to be increased.
+		InitialDelaySeconds: int32(60), // TODO: With increase in sidecar containers, initial delay needs to be increased.
 		TimeoutSeconds:      int32(10),
 		PeriodSeconds:       int32(20),
 		Handler:             c.GetHandler(),
