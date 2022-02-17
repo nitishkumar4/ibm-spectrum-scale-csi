@@ -18,6 +18,7 @@ package syncer
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/imdario/mergo"
@@ -207,7 +208,7 @@ func (s *csiControllerSyncer) ensureSidecarContainersSpec() []corev1.Container {
 			"--resync=10m",
 			"--timeout=2m",
 			"--leader-election",
-			"--http-endpoint=:" + string(config.AttacherLeaderLivenessPort),
+			"--http-endpoint=:" + fmt.Sprint(config.AttacherLeaderLivenessPort),
 		},
 	)
 	attacher.Ports = s.driver.GetAttacherContainerPort()
@@ -221,7 +222,7 @@ func (s *csiControllerSyncer) ensureSidecarContainersSpec() []corev1.Container {
 			"--csi-address=$(ADDRESS)",
 			"--v=5",
 			"--leader-election",
-			"--http-endpoint=:" + string(config.SnapshotterLeaderLivenessPort),
+			"--http-endpoint=:" + fmt.Sprint(config.SnapshotterLeaderLivenessPort),
 		},
 	)
 	snapshotter.Ports = s.driver.GetSnapshotterContainerPort()
@@ -237,7 +238,7 @@ func (s *csiControllerSyncer) ensureSidecarContainersSpec() []corev1.Container {
 			"--handle-volume-inuse-error=false",
 			"--workers=10",
 			"--leader-election",
-			"--http-endpoint=:" + string(config.ResizerLeaderLivenessPort),
+			"--http-endpoint=:" + fmt.Sprint(config.ResizerLeaderLivenessPort),
 		},
 	)
 	resizer.Ports = s.driver.GetResizerContainerPort()
@@ -255,7 +256,7 @@ func (s *csiControllerSyncer) ensureSidecarContainersSpec() []corev1.Container {
 			"--v=5",
 			"--default-fstype=gpfs",
 			"--leader-election",
-			"--http-endpoint=:" + string(config.ProvisionerLeaderLivenessPort),
+			"--http-endpoint=:" + fmt.Sprint(config.ProvisionerLeaderLivenessPort),
 		},
 	)
 	provisioner.Ports = s.driver.GetProvisionerContainerPort()
