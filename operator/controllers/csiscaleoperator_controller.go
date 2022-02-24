@@ -69,8 +69,8 @@ var daemonSetRestartedValue = ""
 
 var csiLog = log.Log.WithName("csiscaleoperator_controller")
 
-// define labels that users need to add to CSI secrets.
-var secretsLabels = map[string]string{
+// define labels that users need to add to CSI secrets and configMaps.
+var productLabels = map[string]string{
 	config.LabelProduct: string(config.Product),
 }
 
@@ -419,13 +419,13 @@ func (r *CSIScaleOperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	logger.Info("Running IBM Spectrum Scale CSI operator", "version", config.OperatorVersion)
 	logger.Info("Setting up the controller with the manager.")
 	p, err := predicate.LabelSelectorPredicate(metav1.LabelSelector{
-		MatchLabels: secretsLabels,
+		MatchLabels: productLabels,
 	})
 	if err != nil {
 		logger.Error(err, "Unable to create label selector predicate. Controller instance will not be created.")
 		return err
 	}
-	preds := builder.WithPredicates(p)
+	// preds := builder.WithPredicates(p)
 
 	CSIReconcileRequestFunc := func() []reconcile.Request {
 		var requests = []reconcile.Request{}
@@ -456,41 +456,59 @@ func (r *CSIScaleOperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return CSIDaemonSets
 	}
 
+	RestartDaemonSets := func() {
+		// TODO: Check if data in e.ObjectNew and e.ObjectOld are same or modified.
+		// Daemon set should update only when data in secret is modified.
+		// Daemon set should not update when secret is updated but not the data.
+		// e.g Secret type, resource version etc is modified.
+		daemonSets := CSIDaemonListFunc()
+		for i := range daemonSets {
+			err = r.rolloutRestartNode(&daemonSets[i])
+			if err != nil {
+				logger.Error(err, "Unable to update daemon set. Please restart driver pods manually.")
+			} else {
+				daemonSetRestartedKey, daemonSetRestartedValue = r.getRestartedAtAnnotation(daemonSets[i].Spec.Template.ObjectMeta.Annotations)
+			}
+		}
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&csiv1.CSIScaleOperator{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &corev1.Secret{}},
 			handler.Funcs{
-				CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
+				GenericFunc: func(e event.GenericEvent, q workqueue.RateLimitingInterface) {
+					logger.Info("Secret is updated. Restarting driver pods.")
 					for _, request := range CSIReconcileRequestFunc() {
 						q.Add(request)
 					}
 				},
-				UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
-					// TODO: Check if data in e.ObjectNew and e.ObjectOld are same or modified.
-					// Daemon set should update only when data in secret is modified.
-					// Daemon set should not update when secret is updated but not the data.
-					// e.g Secret type, resource version etc is modified.
-					// TODO: Update only those daemon set which are in the same namespace as the secret that triggered the event.
-					daemonSets := CSIDaemonListFunc()
-					for i := range daemonSets {
-						logger.Info("Secrets were modified. Daemon Set will be updated. Restarting node specific pods.")
-						err = r.rolloutRestartNode(&daemonSets[i])
-						if err != nil {
-							logger.Error(err, "Unable to update daemon set. Please restart node specific pods manually.")
-						} else {
-							daemonSetRestartedKey, daemonSetRestartedValue = r.getRestartedAtAnnotation(daemonSets[i].Spec.Template.ObjectMeta.Annotations)
-						}
+				CreateFunc: func(e event.CreateEvent, q workqueue.RateLimitingInterface) {
+					logger.Info("New secret is created. Restarting driver pods.")
+					RestartDaemonSets()
+					for _, request := range CSIReconcileRequestFunc() {
+						q.Add(request)
 					}
+
+				},
+				UpdateFunc: func(e event.UpdateEvent, q workqueue.RateLimitingInterface) {
+					logger.Info("Secret is modified. Restarting driver pods.")
+					RestartDaemonSets()
 					for _, request := range CSIReconcileRequestFunc() {
 						q.Add(request)
 					}
 				},
 				DeleteFunc: func(e event.DeleteEvent, q workqueue.RateLimitingInterface) {
+					logger.Info("Secret is deleted. Restarting driver pods.")
+					RestartDaemonSets()
 					for _, request := range CSIReconcileRequestFunc() {
 						q.Add(request)
 					}
 				},
-			}, preds).
+
+			}, builder.WithPredicates(p)).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(func(obj client.Object) []reconcile.Request {
+			return CSIReconcileRequestFunc()
+		}), builder.WithPredicates(p)).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }
