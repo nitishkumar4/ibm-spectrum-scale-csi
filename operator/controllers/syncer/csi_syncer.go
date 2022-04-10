@@ -407,22 +407,11 @@ func (s *csiControllerSyncer) ensureAttacherPodSpec(secrets []corev1.LocalObject
 		//			FSGroup:   &fsGroup,
 		//			RunAsUser: &fsGroup,
 		//		},
-		Affinity:           s.driver.Spec.Affinity,
+		Affinity:           s.driver.GetAffinity(config.Attacher.String()),
 		Tolerations:        s.driver.Spec.Tolerations,
 		ServiceAccountName: config.GetNameForResource(config.CSIAttacherServiceAccount, s.driver.Name),
 		ImagePullSecrets:   secrets,
 	}
-
-	if pod.Affinity != nil {
-		pod.Affinity.PodAntiAffinity = s.driver.GetAttacherPodAntiAffinity()
-	} else {
-		affinity := corev1.Affinity{
-			PodAntiAffinity: s.driver.GetAttacherPodAntiAffinity(),
-		}
-		pod.Affinity = &affinity
-	}
-
-	pod.Tolerations = append(pod.Tolerations, s.driver.GetNodeTolerations()...)
 	return pod
 }
 
@@ -441,7 +430,7 @@ func (s *csiControllerSyncer) ensureProvisionerPodSpec(secrets []corev1.LocalObj
 		//			FSGroup:   &fsGroup,
 		//			RunAsUser: &fsGroup,
 		//		},
-		Affinity:           s.driver.Spec.Affinity,
+		Affinity:           s.driver.GetAffinity(config.Provisioner.String()),
 		Tolerations:        s.driver.Spec.Tolerations,
 		ServiceAccountName: config.GetNameForResource(config.CSIProvisionerServiceAccount, s.driver.Name),
 		ImagePullSecrets:   secrets,
@@ -464,7 +453,7 @@ func (s *csiControllerSyncer) ensureSnapshotterPodSpec(secrets []corev1.LocalObj
 		//			FSGroup:   &fsGroup,
 		//			RunAsUser: &fsGroup,
 		//		},
-		Affinity:           s.driver.Spec.Affinity,
+		Affinity:           s.driver.GetAffinity(config.Snapshotter.String()),
 		Tolerations:        s.driver.Spec.Tolerations,
 		ServiceAccountName: config.GetNameForResource(config.CSISnapshotterServiceAccount, s.driver.Name),
 		ImagePullSecrets:   secrets,
@@ -487,7 +476,7 @@ func (s *csiControllerSyncer) ensureResizerPodSpec(secrets []corev1.LocalObjectR
 		//			FSGroup:   &fsGroup,
 		//			RunAsUser: &fsGroup,
 		//		},
-		Affinity:           s.driver.Spec.Affinity,
+		Affinity:           s.driver.GetAffinity(config.Resizer.String()),
 		Tolerations:        s.driver.Spec.Tolerations,
 		ServiceAccountName: config.GetNameForResource(config.CSIResizerServiceAccount, s.driver.Name),
 		ImagePullSecrets:   secrets,
